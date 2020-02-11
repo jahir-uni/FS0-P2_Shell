@@ -1,127 +1,96 @@
-#include <pthread.h>
+/* Getty: takes inputs from user and compares them to a txt user/pass database */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
-typedef struct UserNames 
+#define FILENAME "passwd.txt"
+
+//Typedefs
+struct loginData
 {
-	char UserName[15];
-} Names;
+  char user[15];
+  char pass[15];
+};
 
-typedef struct UserPasswords 
+//Global Variables
+struct loginData fullData[50];
+int lineNumber;
+
+//Function definitions
+
+void parseFile()
 {
-    	char UserPass[15];
-} Passwords;
+  /* Se abre el archivo */
+  FILE* openedFile = fopen(FILENAME, "rt");
+  char textLine[35];
+  char *pch;
+  lineNumber = 0;
 
-void ReadFile();
-int CheckUser();
-
-Names *P_Names;
-Passwords *P_Passwords;
-int NumberOfElements=0;
-
-int main(int argc, char **argv)
-{
-   	char V_UserName[15];
-   	char V_UserPassword[15];
-   	char archivo[]="passwd.txt";
-	int status;
-	pid_t p;
-	char ppid[20];
-	strcpy(ppid, argv[1]);
-	printf("%s\n",ppid);
-
-   	while(1)
-  	{
-    		wait(&status);
-    		printf("gt > User: ");
-     		scanf("%s", V_UserName);
-     		printf("gt > Password: ");
-     		scanf("%s", V_UserPassword);
-     		ReadFile(archivo);
-
-     		if(CheckUser(V_UserName, V_UserPassword))			
-        	{
-			//printf("Ejecutando getty\n");
-			p=fork();
-			if(p==0)
-				execlp("./sh", "sh", NULL);
-			wait(&status);
-			printf("STATUS SH: %d\n", status);
-
-			if(status==256) //shutdown
-			{	
-				printf("Shutdown %s\n", ppid);
-				sleep(2);
-				execlp("pkill", "pkill", "-TERM", "-P", argv[1], NULL);
-			}	
-        	}
-     		else 
-        		printf("Invalid user/password. Try again.\n");
-    	}
+  if(NULL != openedFile) //Si no esta vacio
+  {
+    while(fgets(textLine, sizeof(textLine), openedFile))  //Se realiza un parse linea por linea
+    {
+      //Se separa el usuario y contraseña y se almacenan en la estructura
+      pch = strtok(textLine, ":");
+      strcpy(fullData[lineNumber].user, pch);
+      pch = strtok (NULL, ":");
+      strcpy(fullData[lineNumber].pass, pch);
+      lineNumber++;
+    }
+  }
+  else
+    printf("Error al abrir el archivo...");
+  fclose(openedFile);
 }
 
-int CheckUser (char User[], char Pass []) 
+int passCheck(char userInput[], char passInput[])
 {
-   	int i;
-   	for(i=0;i<NumberOfElements;i++)
-	{
-      		if (strcmp(User,P_Names[i].UserName) == 0 && strcmp(Pass,P_Passwords[i].UserPass) == 0)
-         	return 1;
-   	}
-   	return 0;
+  for(int i=0;i<lineNumber;i++)
+  {
+    if(0 == strcmp(userInput, fullData[i].user) && 0 == strcmp(passInput, fullData[i].pass))
+      return 1;
+  }
+  return 0;
 }
 
-void ReadFile (char AnyFile[]) 
+int main ()
 {
-    	// LEER ARCHIVO Y GUARDAR EN ESTRUCTURAS
-    	FILE * names;
-    	names = fopen(AnyFile, "rt");
- 
-    	if (names!=NULL)
-	{
-        	/* Nombres */
-        	P_Names=(Names*)malloc(sizeof(Names));
-        	/* Contraseñas */
-        	P_Passwords=(Passwords*)malloc(sizeof(Passwords));
-        	char F_String [37]; 
-        	int Aux1=0, Aux2=1;
-        	int i=0, j=0, k=0;
-        
-        	while(!feof(names))
-            	{
-                	fgets(F_String, 37, names);
-                	i=0, j=0;
+  char userInput[15];
+  char passInput[15];
+  int status;
+  pid_t pid;
 
-                	while((F_String[i]!='\n')&&(F_String[i]!='\0'))
-			{
+  while(1)
+  {
+    //wait(&status);
 
-                   		while(F_String[i]!=':')
-                       		{
-                           		P_Names[Aux1].UserName[i]=F_String[i];
-                           		i++;
-                       		}
-                   		P_Names[Aux1].UserName[i]='\0';
-                   		i++; 
+    parseFile();
 
-                   		while((F_String[i]!='\n')&&(F_String[i]!='\0'))
-		               	{
-		                   	P_Passwords[Aux1].UserPass[j]=F_String[i];
-		                   	i++, j++;
-		               	}
-		           	P_Passwords[Aux1].UserPass[i]='\0';
-		           	Aux1++, Aux2++;
-		           	P_Passwords=(Passwords*)realloc(P_Passwords, (sizeof(Passwords)*Aux2));
-		           	P_Names=(Names*)realloc(P_Names, (sizeof(Names)*Aux2));
-		           	NumberOfElements++;
-           		}   
-		}
-	}
-    	// EN CASO DE QUE NO PUEDA ABRIRSE EL ARCHIVO
-    	else 
-		printf("No se puede abrir el archivo.");
-    	fclose(names);
+    printf("**********************\n*     CHECK  PASS    *\n**********************\n\n\n");
+    printf("getty $ Username: ");
+    scanf("%s",userInput);
+    printf("getty $ Password: ");
+    scanf("%s",passInput);
+
+    if(passCheck(userInput, passInput))
+    {
+      pid = fork();
+
+      if(0 == pid)
+        execlp("./sh", "sh", NULL);
+      wait(&status);
+
+      if(256 == status)
+      {
+        printf("Shutdown\n");
+        sleep(2);
+        execlp("pkill", "pkill", "-TERM", "-P", NULL);
+      }
+    }else
+      printf("Usuario o password invalido, intenta de nuevo...\n");
+  }
+  return 0;
 }
-

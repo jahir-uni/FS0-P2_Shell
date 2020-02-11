@@ -20,12 +20,11 @@ int main()
 	while(1)
 	{
 		wait(&status);
-		if(status==3840)
+		if(3840 == status)
 			execlp("pkill", "pkill", "-TERM", "-P", mypid, NULL);
 		pfork = fork();
-		if(0 == pfork) //si es un proceso hijo
+		if(0 == pfork) //Si un proceso hijo se cerro
 			execlp("xterm","xterm", "-e", "./getty", mypid, NULL);
 	}
-	
 }
 
