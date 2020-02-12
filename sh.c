@@ -1,7 +1,7 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define SPLIT_CHARS " /"
 
@@ -20,6 +20,8 @@ char *terminalData[4];
 char strPath[50]= "/bin/";
 char strExec[50]= "./";
 
+char cmd[50];
+
 char userInput[50];
 int cmdIndex = 0;
 int state=0;
@@ -32,8 +34,8 @@ while(1){
 	scanf("%s",userInput);
 
 	//Split string and get keywords
-	terminalData[0] = strtok (str,SPLIT_CHARS);
-	//terminalData[0] = strtok (userInput," /");
+	//terminalData[0] = strtok (str,SPLIT_CHARS);
+	terminalData[0] = strtok (userInput," /");
 	for (int i = 0; i < 4; i++) {
 		if(terminalData[i] != NULL){
 			terminalData[i+1] = strtok (NULL," /");
@@ -49,22 +51,24 @@ while(1){
 			switch (cmdIndex) {
 
 				case CMD_EXIT:
-					printf("Comando <exit>: %s",terminalData[0]);//<-diagnostic
-					//return 0;//3840;
+					printf("Comando <exit>: %s\n",terminalData[0]);//<-diagnostic
+					return 0;//3840;
 					break;
 
 				case CMD_SHUTDOWN:
-					printf("Comando <shutdown>: %s",terminalData[0]);//<-diagnostic
-					//return 256;
+					printf("Comando <shutdown>: %s\n",terminalData[0]);//<-diagnostic
+					return 256;
 					break;
 
 				case CMD_BIN:
 					if(terminalData[1]==NULL)//if Null, its an error
 						break;
 
+					strcpy(strPath,"/bin/");
 					strcat(strPath,terminalData[1]);
 					printf("Comando <bin>: %s",strPath);//<-diagnostic
-					//execvp(strPath[],terminalData[1]);
+					//execvp(strPath,terminalData[1]);					
+					//execvp(strPath,terminalData);
 
 					break;
 
@@ -107,4 +111,3 @@ while(1){
 }
 	return 0;
 }
-
