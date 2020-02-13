@@ -1,19 +1,22 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#define SPLIT_CHARS " /"
+#define SPLIT_CHARS " /'\n'" //chars to split string by
 
-#define MAX_CMD_NUM 6
+#define MAX_CMD_NUM 6	//max command number
 
-#define CMD_EXIT 0
-#define CMD_SHUTDOWN 1
-#define CMD_BIN 2
-#define CMD_LS 3
-#define CMD_PS 4
-#define CMD_EXEC 5
+#define CMD_EXIT 0 	//index command to close shell window
+#define CMD_SHUTDOWN 1	//index command to shutdown all windows from main parent
+#define CMD_BIN 2	//index Path for system programs
+#define CMD_LS 3	//index command to show...
+#define CMD_PS 4	//index command to show...
+#define CMD_EXEC 5	//index command to execute a file
 
+
+int main(void) {
 
 char shellCMDList[][20] = {"exit","shutdown","bin","ls","ps","."};
 char *terminalData[4];
@@ -26,19 +29,16 @@ char userInput[50];
 int cmdIndex = 0;
 int state=0;
 
-char str[] = "./prog parm";//"./programa parametro";
-
-int main(void) {
 while(1){
 	printf("\nsh > ");
-	scanf("%s",userInput);
+	//Get user input command string
+	fgets(userInput, sizeof(userInput),stdin);
 
 	//Split string and get keywords
-	//terminalData[0] = strtok (str,SPLIT_CHARS);
-	terminalData[0] = strtok (userInput," /");
+	terminalData[0] = strtok (userInput," /'\n'");
 	for (int i = 0; i < 4; i++) {
 		if(terminalData[i] != NULL){
-			terminalData[i+1] = strtok (NULL," /");
+			terminalData[i+1] = strtok (NULL," /'\n'");
 		}
 	}
 
@@ -47,7 +47,7 @@ while(1){
 		//Compare array to current list of commands
 		if(strcmp(terminalData[0],shellCMDList[cmdIndex]) == 0){
 
-
+			//Execute commands
 			switch (cmdIndex) {
 
 				case CMD_EXIT:
@@ -77,20 +77,25 @@ while(1){
 						printf("Comando <execute1>: %s",terminalData[1]);//<-diagnostic
 						//execvp(terminalData[0],"");
 					}else{
-						printf("Comando <execute2>: %s ",terminalData[1]);//<-diagnostic
-						printf("*=%s _",terminalData[2]);
+						printf("Comando <execute2>: %s %s",terminalData[1],terminalData[2]);//<-diagnostic						
 						//execvp(terminalData[0],terminalData[1]);
 					}
 
 					break;
-				default:
+				default: //all other commands
 
 					if(terminalData[1]==NULL){
-						printf("Comando <CMD>: %s",terminalData[0]);//<-diagnostic
-						//execvp(terminalData[0],terminalData[1]);
+						printf("Comando <CMD>: %s",terminalData[0]);//<-diagnostic						
+						execlp(terminalData[0],terminalData[0],(char *)NULL);
 					}else{
-						printf("Comando <CMD>: %s%s",terminalData[0],terminalData[1]);//<-diagnostic
+						//printf("Comando <CMD>: %s %s",terminalData[0],terminalData[1]);//<-diagnostic
 						//execvp(terminalData[0],terminalData[1]);
+						printf("Comando <CMD>: %s %s",terminalData[0],terminalData[1]);//<-diagnostic
+						strcpy(strPath,terminalData[0]);
+						strcat(strPath," ");
+						strcat(strPath,terminalData[1]);
+						printf("Comando a enviar: %s", strPath);//<-diagnostic
+						execlp(strPath,strPath,(char *)NULL);
 					}
 
 					break;
@@ -101,11 +106,6 @@ while(1){
 			state=0;
 		}
 	}//end for
-
-	printf("\nResult state: %d",state);//<-diagnostic
-	/*int result = strcmp(terminalData[0],shellCMDList[5]); //just testing
-	printf("Resultado comp: %d\n",result);*/
-
 
 
 }
