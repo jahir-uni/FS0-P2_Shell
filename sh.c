@@ -1,265 +1,113 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <stdlib.h>
 
-void SeparateLine();
-void ImprimirVariablesAmbiente();
-int SegundoPlano();
-void SepararStrings();
-int UsaPath();
-void PartePalabra();
-void parse(char *line, char **argv);
-const char *  TraerVariableBuscada(char String[], char barrera[], char barrera_char);
-void BuscarVariable();
-char * pch;
-char * pch_variable;
-char **array_variables;
-int count=0;
+#define SPLIT_CHARS " /"
 
-int main()
-{
-    char v_command[100];
-    char v_command_cpy[100];
-    char string1[100];
-    char string2[100];
-    int number_words;
-    int status;
-    int segPl;
-    int useP;
-    pid_t p;
-    char cons[200];
-    char string_concat[100];
+#define MAX_CMD_NUM 6
 
-    printf("%d", getpid());
+#define CMD_EXIT 0
+#define CMD_SHUTDOWN 1
+#define CMD_BIN 2
+#define CMD_LS 3
+#define CMD_PS 4
+#define CMD_EXEC 5
 
-    while(1)//strcmp(v_command,"exit\n"))
-    {
-        printf("sh > ");
-        fgets(v_command, 100, stdin);
 
-        if(strncmp(v_command, "\n", sizeof(v_command) != 0))
-        {
-    
-            strcpy(v_command_cpy,v_command);
+char shellCMDList[][20] = {"exit","shutdown","bin","ls","ps","."};
+char *terminalData[4];
+char strPath[50]= "/bin/";
+char strExec[50]= "./";
 
-            SeparateLine(v_command, " \n", 1);
+char cmd[50];
 
-            if(!strcmp(v_command, "export"))
-            {
-                strcpy(string2,v_command);
-                strcpy(v_command_cpy,TraerVariableBuscada(v_command_cpy, "\n=\0$", '$'));
-                if(strcmp(v_command_cpy, "PATH")!=0)
-                    strcpy(cons, v_command_cpy);
-                else
-                    SeparateLine(string2, " \n", 0);
-            }
-            
-            else if(!strcmp(v_command, "echo\0") || v_command[0]=='$')
-            {
-                strcpy(v_command_cpy,TraerVariableBuscada(v_command_cpy, " \n=$", '$'));
-                if(strcmp(v_command, "PATH")!=0)
-                    printf("%s\n", cons);
-                else    
-                    BuscarVariable(v_command_cpy);
-                
-            }
-            else if(!strcmp(v_command, "shutdown"))
-            {
-                return 1;
-            }
-            else if(!strcmp(v_command, "exit"))
-            {
-                return 0;
-            }
-            else //ejemplo ./ls || /ls || /home/Desktop/kill -9 123
-            {
+char userInput[50];
+int cmdIndex = 0;
+int state=0;
 
-                segPl=SegundoPlano(v_command_cpy);
-                useP=UsaPath(v_command_cpy);
+char str[] = "./prog parm";//"./programa parametro";
 
-                SepararStrings(string1, string2, v_command_cpy);
+int main(void) {
+while(1){
+	printf("\nsh > ");
+	scanf("%s",userInput);
 
-                if(useP) // Usa el path
-                {
-                    if(segPl) // Esta en segundo plano
-                    {
-                        strcpy(string_concat, strcat(cons, string1));
-                        p=fork();
-                        if(p==0)
-                        {
+	//Split string and get keywords
+	//terminalData[0] = strtok (str,SPLIT_CHARS);
+	terminalData[0] = strtok (userInput," /");
+	for (int i = 0; i < 4; i++) {
+		if(terminalData[i] != NULL){
+			terminalData[i+1] = strtok (NULL," /");
+		}
+	}
 
-                            char *argu[64];
-                            parse(string2,argu);
-                            execvp(string_concat, argu);
-                        }
-                    }
-                    else
-                    {
-                        strcpy(string_concat, strcat(cons, string1));
-                        printf("%s",string_concat);
-                        p=fork();
-                        if(p==0)
-                        {
-                            char *argu[64];
-                            parse(string2,argu);
-                            if(sizeof(string2) != 100)
-                                execvp(string1, argu);
-                            else
-                                execlp(string1,"proceso", NULL);
-                        }
-                        printf("ASD");
+	//Validate command
+	for (cmdIndex = 0; cmdIndex < MAX_CMD_NUM; cmdIndex++) {
+		//Compare array to current list of commands
+		if(strcmp(terminalData[0],shellCMDList[cmdIndex]) == 0){
 
-                        wait(&status);
-                    }
-                }
-                else
-                {
-                    if(segPl)
-                    {
-                        p=fork();
-                        if(p==0)
-                        {
-                            char *argu[64];
-                            parse(string2,argu);
-                            execvp(string1, argu);
-                        }
-                    }
-                    else
-                    {
-                        printf("%lu", sizeof(string2));
-                        p=fork();
-                        if(p==0)
-                        {
-                            char *argu[64];
-                            parse(string2,argu);
-                            if(sizeof(string2) != 100)
-                                execvp(string1, argu);
-                            else
-                                execlp(string1,"proceso", NULL);
-                        }
-                        wait(&status);
-                    }
-                }
-            }
-        }
-    }
+
+			switch (cmdIndex) {
+
+				case CMD_EXIT:
+					printf("Comando <exit>: %s\n",terminalData[0]);//<-diagnostic
+					return 0;//3840;
+					break;
+
+				case CMD_SHUTDOWN:
+					printf("Comando <shutdown>: %s\n",terminalData[0]);//<-diagnostic
+					return 256;
+					break;
+
+				case CMD_BIN:
+					if(terminalData[1]==NULL)//if Null, its an error
+						break;
+
+					strcpy(strPath,"/bin/");
+					strcat(strPath,terminalData[1]);
+					printf("Comando <bin>: %s",strPath);//<-diagnostic
+					//execvp(strPath,terminalData[1]);					
+					//execvp(strPath,terminalData);
+
+					break;
+
+				case CMD_EXEC:
+					if(terminalData[2]==NULL){
+						printf("Comando <execute1>: %s",terminalData[1]);//<-diagnostic
+						//execvp(terminalData[0],"");
+					}else{
+						printf("Comando <execute2>: %s ",terminalData[1]);//<-diagnostic
+						printf("*=%s _",terminalData[2]);
+						//execvp(terminalData[0],terminalData[1]);
+					}
+
+					break;
+				default:
+
+					if(terminalData[1]==NULL){
+						printf("Comando <CMD>: %s",terminalData[0]);//<-diagnostic
+						//execvp(terminalData[0],terminalData[1]);
+					}else{
+						printf("Comando <CMD>: %s%s",terminalData[0],terminalData[1]);//<-diagnostic
+						//execvp(terminalData[0],terminalData[1]);
+					}
+
+					break;
+			}
+			state=1;
+			break;
+		}else{
+			state=0;
+		}
+	}//end for
+
+	printf("\nResult state: %d",state);//<-diagnostic
+	/*int result = strcmp(terminalData[0],shellCMDList[5]); //just testing
+	printf("Resultado comp: %d\n",result);*/
+
+
+
 }
-
-
-void SeparateLine(char String[], char limit[], int export)
-{
-    pch = strtok (String,limit);
-
-      while (pch != NULL)
-       {
-            if(!export && strcmp("export", pch)!=0)
-            {
-            count++;
-   
-            if(count>0)
-            {
-                array_variables = (char**)realloc(array_variables, (count+1)*sizeof(*array_variables));
-                array_variables[count-1] = (char*)malloc(sizeof(pch));
-                strcpy(array_variables[count-1], pch);
-            }
-            
-        }
-        pch = strtok (NULL, limit);
-    }
-}
-
-const char * TraerVariableBuscada(char String[], char barrera[], char barrera_char)
-{
-    int i=0;
-    static char aux[20];
-
-    if(String[0]==barrera_char)
-    {
-        for(i=0;i<strlen(String);i++)
-        {
-            if(String[i+1]!='\n')
-            {
-                aux[i]=String[i+1];
-            }
-        }
-    
-        return aux;
-    }
-    
-    else {
-            pch_variable = strtok (String,barrera);
-              while (pch_variable != NULL){
-                if(pch_variable[i]==barrera_char)
-                    return pch_variable = strtok (NULL, barrera);//" \n=$");
-                i++;
-              }
-    }    
-    return "not found";
-}
-
-void SepararStrings(char String1[], char String2[], char FullString[]){
-    int i;
-    int j=0;
-    int flag=0;
-    for(i=0;i<strlen(FullString);i++){
-        if(FullString[i]==' ' && !flag)
-            {
-             i++;
-             flag++;
-            }
-        
-        if (!flag)
-            String1[i]=FullString[i];
-        else
-            if(FullString[i]!='\n' && FullString[i]!='\0'){
-                String2[j]=FullString[i];
-                j++;
-            }
-    }
-    if(!flag){
-        String2[0] = '\0';
-        //strcpy(String2, temp);
-    }
-}
-
-int SegundoPlano(char String[])
-{
-    if(String[(unsigned)strlen(String)-2] == '&')
-        return 1;
-    else
-        return 0;
-}
-
-int UsaPath(char String[])
-{
-    if(String[0]=='.' || String[0]=='/')
-        return 0;
-    else
-        return 1;
-}
-
-
-void BuscarVariable(char String[]){
-    int i;
-    for(i=0;i<count;i++)
-           if(strncmp(String, array_variables[i], strlen(String))==0)
-               printf("%s\n", array_variables[i]);
-}
-
-// Esta funcion fue tomada del link a la siguiente pagina web donde se ejemplifica el uso de execvp. Creado por CentOS
-//    http://www.csl.mtu.edu/cs4411.ck/www/NOTES/process/fork/exec.html
-void  parse(char *line, char **argv)
-{
-     while (*line != '\0') {       /* if not the end of line ....... */
-          while (*line == ' ' || *line == '\t' || *line == '\n')
-               *line++ = '\0';     /* replace white spaces with 0    */
-          *argv++ = line;          /* save the argument position     */
-          while (*line != '\0' && *line != ' ' &&
-                 *line != '\t' && *line != '\n')
-               line++;             /* skip the argument until ...    */
-     }
-     *argv = '\0';                 /* mark the end of argument list  */
+	return 0;
 }
